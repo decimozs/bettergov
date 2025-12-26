@@ -1,15 +1,9 @@
 import { SearchIcon, XIcon } from 'lucide-react';
-import {
-  ChangeEvent,
-  FormEvent,
-  InputHTMLAttributes,
-  ReactNode,
-  useState,
-} from 'react';
+import { ChangeEvent, FormEvent, InputHTMLAttributes, ReactNode } from 'react';
 import { cn } from '../../lib/utils';
 
 interface SearchInputProps
-  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'size'> {
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   onSearch?: (value: string) => void;
   className?: string;
   placeholder?: string;
@@ -25,25 +19,27 @@ const SearchInput = ({
   icon = <SearchIcon className='h-5 w-5 text-gray-800' />,
   size = 'md',
   clearable = true,
+  value, // Provided by parent
+  onChange, // Provided by parent
   ...props
 }: SearchInputProps) => {
-  const [value, setValue] = useState('');
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-  };
-
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (onSearch) {
-      onSearch(value);
+      // value is a string or number, ensure it's handled as string
+      onSearch(String(value || ''));
     }
   };
 
   const handleClear = () => {
-    setValue('');
+    // We simulate an event or call a specific handler to tell the parent to clear
     if (onSearch) {
       onSearch('');
+    }
+    // Alternatively, if the parent provides a direct setter via onChange:
+    if (onChange) {
+      const event = { target: { value: '' } } as ChangeEvent<HTMLInputElement>;
+      onChange(event);
     }
   };
 
@@ -70,8 +66,8 @@ const SearchInput = ({
             clearable && value ? 'pr-10' : 'pr-4'
           )}
           placeholder={placeholder}
-          value={value}
-          onChange={handleChange}
+          value={value} // Controlled
+          onChange={onChange} // Update parent state
           {...props}
         />
         {clearable && value && (
