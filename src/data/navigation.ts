@@ -38,6 +38,11 @@ export const ourProjects = [
         target: '_blank',
       },
       {
+        label: 'Bantay PH',
+        href: 'https://bantay.bettergov.ph',
+        target: '_blank',
+      },
+      {
         label: 'Petitions',
         href: 'https://petition.ph',
         target: '_blank',
@@ -154,6 +159,7 @@ export const footerNavigation = {
       title: 'About',
       links: [
         { label: 'About the Portal', href: '/about' },
+        { label: 'About BetterGov.ph', href: 'https://about.bettergov.ph' },
         { label: 'Documentation', href: 'https://docs.bettergov.ph/' },
         { label: 'Project Ideas', href: '/ideas' },
         { label: 'Accessibility', href: '/accessibility' },

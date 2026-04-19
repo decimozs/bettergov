@@ -121,8 +121,10 @@ const FloodControlProjectsMap: FC = () => {
   );
   const [mapProjects, setMapProjects] = useState<FloodControlProject[]>([]);
   const [zoomLevel, setZoomLevel] = useState<number>(6);
+  const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
   const mapRef = useRef<L.Map>(null);
   const geoJsonLayerRef = useRef<LeafletGeoJSON | null>(null);
+  const hoveredRegionRef = useRef<string | null>(null);
 
   const initialCenter: LatLngExpression = [12.8797, 121.774]; // Philippines center
   const initialZoom = 6;
@@ -296,6 +298,8 @@ const FloodControlProjectsMap: FC = () => {
         loading: true,
       };
       setSelectedRegion(regionDetails);
+      setHoveredRegionName(null);
+      hoveredRegionRef.current = null;
 
       // Only zoom/fit bounds if we're not already zoomed in (zoom level <= 8)
       if (mapRef.current && feature.geometry && zoomLevel <= 8) {
@@ -316,32 +320,47 @@ const FloodControlProjectsMap: FC = () => {
   );
 
   // Event handlers for each feature
-  const onEachFeature = (
-    feature: GeoJSON.Feature<GeoJSON.Geometry, RegionProperties>,
-    layer: Layer
-  ) => {
-    layer.on({
-      click: () => onRegionClick(feature),
-      mouseover: e => {
-        // Disable hover effects when zoomed in (zoom level > 8)
-        if (zoomLevel <= 8) {
-          setHoveredRegionName(getRegionName(feature));
-          // e.target.setStyle(regionStyle(feature)) // Re-apply style with hover state
+  const onEachFeature = useCallback(
+    (
+      feature: GeoJSON.Feature<GeoJSON.Geometry, RegionProperties>,
+      layer: Layer
+    ) => {
+      layer.on({
+        click: () => onRegionClick(feature),
+        mouseover: e => {
+          if (zoomLevel > 8 || isPopupOpen) return;
+
+          const regionName = getRegionName(feature);
+          if (hoveredRegionRef.current === regionName) return;
+
+          hoveredRegionRef.current = regionName;
+          setHoveredRegionName(regionName);
           e.target.bringToFront();
-        }
-      },
-      mouseout: e => {
-        // Only reset hover state if we're not zoomed in
-        if (zoomLevel <= 8) {
-          setHoveredRegionName(null);
-          // Reset to default style or selected style if it's the selected region
-          if (geoJsonLayerRef.current) {
-            geoJsonLayerRef.current.resetStyle(e.target);
+        },
+        mouseout: e => {
+          if (zoomLevel > 8 || isPopupOpen) return;
+
+          const relatedTarget = (e.originalEvent as MouseEvent)
+            .relatedTarget as HTMLElement | null;
+
+          if (
+            relatedTarget &&
+            relatedTarget.closest(
+              '.leaflet-popup, .leaflet-marker-icon, .leaflet-marker-shadow'
+            )
+          ) {
+            return;
           }
-        }
-      },
-    });
-  };
+
+          if (hoveredRegionRef.current === null) return;
+
+          hoveredRegionRef.current = null;
+          setHoveredRegionName(null);
+        },
+      });
+    },
+    [isPopupOpen, onRegionClick, zoomLevel]
+  );
 
   const handleZoomIn = () => mapRef.current?.zoomIn();
   const handleZoomOut = () => mapRef.current?.zoomOut();
@@ -426,6 +445,12 @@ const FloodControlProjectsMap: FC = () => {
                       if (mapRef.current) {
                         setZoomLevel(mapRef.current.getZoom());
                       }
+                    });
+                    mapRef.current.on('popupopen', () => {
+                      setIsPopupOpen(true);
+                    });
+                    mapRef.current.on('popupclose', () => {
+                      setIsPopupOpen(false);
                     });
                   }
                 }}
